@@ -49,20 +49,67 @@ app.post('/api/users',function(req, res){
 });
 let username;
 app.post('/api/users/:_id/exercises',function(req, res){
-  req.body.fecha = req.body.date
-  req.body.id = req.body[':_id'];
-  User.findById(req.body.id, function(err, usuario){
+  let fecha =  new Date(req.body.date)
+  console.log(fecha)
+  let id = req.body.id = req.body[':_id'];
+  User.findById(id, function(err, usuario){
     if (err) return console.log(err);
     username = usuario.username
     req.body.username = usuario.username
-    var exercise = new Exercise(req.body);
+    body = {
+      id: id,
+      username: username,
+      description: req.body.description,
+      duration: Number(req.body.duration),
+      fecha: fecha
+    }
+    var exercise = new Exercise(body);
     exercise.save(function(err,ejercicio){
       if (err) return console.log(err);
       console.log('Ejercicio creado');
+      output = {
+        "_id": ejercicio.id,
+        "username": ejercicio.username,
+        "date": ejercicio.fecha.toDateString(),
+        "duration": ejercicio.duration,
+        "description": ejercicio.description
+      }
+      res.send(output);
+      
     });
-  });
-  
+  }); 
 })
+
+app.get("/api/users/:_id/logs",function(req, res){
+  let id = req.params._id;
+  let from = new Date("1 January 1970");
+  let to = new Date();
+  let limit = ''; 
+  if (req.query.from){
+    from = new Date(req.query.from);
+  }
+  if (req.query.to){
+    to = new Date(req.query.to);
+  }
+  if (req.query.limit){
+    limit = Number(req.query.limit);
+  }
+  console.log(to.toDateString())
+  console.log(id)
+  query = Exercise.find({id:id},'description duration fecha -_id').where('fecha').gte(from).lte(to).limit(limit).exec(function(err,data){
+    if (err) return console.log(err);
+    arr = data.map(element => ({"description" :element.description,
+                               "duration": element.duration,
+                               "date": element.fecha.toDateString()
+                              }))
+    res.send({"_id": id,
+              "username": req.body.username,
+              "count": arr.length,
+              "log": arr
+            })
+  })
+})
+
 
 
 
